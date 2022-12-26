@@ -18,5 +18,5 @@ def write_stars(path: str, rows: int):
 if __name__ == '__main__':
     np.random.seed(42)
 
-    write_path = 'result.csv'
+    write_path = 'resources/result.csv'
     write_stars(write_path, 100)
