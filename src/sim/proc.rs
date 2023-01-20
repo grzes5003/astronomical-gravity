@@ -48,7 +48,6 @@ impl<'a> Proc<'a> {
 
         // set buff
         self.stars_buff = rcv;
-
         Ok(())
     }
 

@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::{io, ops};
+use std::{fmt, io, ops};
 use std::error::Error;
 use std::io::{BufRead, BufReader};
 use log::{debug, error, info, warn};
@@ -119,6 +119,10 @@ impl Particle {
         } else {
             Err(err)
         }
+    }
+
+    pub fn to_string(&self) -> String {
+        format!("{},{},{}", self.pos.0, self.pos.1, self.pos.2)
     }
 
     pub fn dist3d(&self, other: &Self) -> Unit {
