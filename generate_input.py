@@ -17,6 +17,8 @@ def write_stars(path: str, rows: int):
 
 if __name__ == '__main__':
     np.random.seed(42)
+    # max for 2 procs 182 -> max send 92
+    input_size = 182
 
-    write_path = 'resources/result.csv'
-    write_stars(write_path, 100)
+    write_path = f'resources/result_{input_size}.csv'
+    write_stars(write_path, input_size)

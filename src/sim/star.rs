@@ -74,7 +74,7 @@ impl Particle {
     }
 
     pub fn calc_vec(&mut self, other: &Vec<Self>) {
-        trace!("[s{}] ?? {:?}", self.mass, other);
+        // trace!("[s{}] ?? {:?}", self.mass, other);
         let mut acc = Vec3(0f32, 0f32, 0f32);
         let mut new_vel = Vec3(0f32, 0f32, 0f32);
 
@@ -87,7 +87,7 @@ impl Particle {
             acc.1 += Particle::G * other.mass * dpos.1 / r3;
             acc.2 += Particle::G * other.mass * dpos.2 / r3;
 
-            trace!("[s{}] !! {}", self.mass, other.mass);
+            // trace!("[s{}] !! {}", self.mass, other.mass);
         });
 
         self.new_vel.0 += acc.0 * Particle::DT;

@@ -61,7 +61,8 @@ fn main() -> io::Result<()> {
                              size);
 
     world.barrier();
-    for it in 0..2 {
+    let t_start = mpi::time();
+    for it in 0..10 {
         for _ in 0..size {
             match proc.step() {
                 Ok(()) => {}
@@ -70,13 +71,23 @@ fn main() -> io::Result<()> {
                     break;
                 }
             }
+            debug!("[i{}][r{}] next step", it, rank);
             world.barrier();
         }
         world.barrier();
+        debug!("[i{}][r{}] Finished iteration", it, rank);
         proc.complete_interation();
-        info!("[i{}][r{}] State: {:?}", it, rank, proc.stars);
+        trace!("[i{}][r{}] State: {:?}", it, rank, proc.stars.len());
     }
     world.barrier();
+    if rank == 0 {
+        let t_end = mpi::time();
+        println!("t={};s={};p={};f={}",
+                 t_end - t_start,
+                 stars.len(),
+                 world.size(),
+                 file_buff.file_name().unwrap().to_str().unwrap_or("none"));
+    }
     if save_result {
         let chunk = proc.stars.iter().map(|star| star.to_string() + ",")
             .collect::<String>()

@@ -39,10 +39,11 @@ impl<'a> Proc<'a> {
 
         if self.rank != self.next_rank {
             // send passing stars
-            trace!("[r{}] sending {:?}", self.rank, self.stars_buff);
+            trace!("[r{}] sending {:?}", self.rank, self.stars_buff.len());
             self.comm.process_at_rank(self.next_rank)
                 .send(self.stars_buff.as_slice());
         }
+        trace!("[r{}] sent {:?}", self.rank, self.stars_buff.len());
 
         // rcv passing stars
         let rcv = if self.rank != self.next_rank {
@@ -52,7 +53,7 @@ impl<'a> Proc<'a> {
         } else {
             self.stars.clone()
         };
-        trace!("[r{}] got {:?}", self.rank, rcv);
+        trace!("[r{}] got {:?}", self.rank, rcv.len());
 
         self.stars_buff = rcv;
         Ok(())
