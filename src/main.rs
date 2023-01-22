@@ -62,7 +62,7 @@ fn main() -> io::Result<()> {
 
     world.barrier();
     let t_start = mpi::time();
-    for it in 0..10 {
+    for it in 0..100 {
         for _ in 0..size {
             match proc.step() {
                 Ok(()) => {}

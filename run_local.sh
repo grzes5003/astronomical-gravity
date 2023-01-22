@@ -14,11 +14,11 @@ fi
 prog=./target/release/AR_proj
 input_file_prefix=./resources/
 
-declare -a arr=("result_100.csv" "result_1000.csv")
+declare -a arr=("result_50.csv" "result_100.csv" "result_182.csv")
 
 for file_name in "${arr[@]}"; do
   file_path="$input_file_prefix""$file_name"
-  for ((iter = 2; iter > 0; iter--)); do
+  for ((iter = 10; iter > 0; iter--)); do
     mpiexec -np 1 "$prog" -f "$file_path"
     for ((threads = 2; threads <= 6; threads += 2)); do
       mpiexec -np "$threads" "$prog" -f "$file_path"
