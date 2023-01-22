@@ -7,6 +7,7 @@ use mpi::topology::SystemCommunicator;
 use mpi::traits::*;
 use crate::sim::err::StarErr;
 use crate::sim::star::Particle;
+use crate::sim::star::Vec3;
 
 
 pub struct Proc<'a> {
@@ -17,6 +18,7 @@ pub struct Proc<'a> {
 
     next_rank: Rank,
     previous_rank: Rank,
+    rank: Rank,
 
     iteration: usize,
 }
@@ -32,21 +34,26 @@ impl<'a> Proc<'a> {
             return Err(StarErr::from("Empty initial state"));
         }
 
-        // send passing stars
-        trace!("{}; sending {:?}", self.previous_rank + 1, self.stars_buff);
-        self.comm.process_at_rank(self.next_rank)
-            .send(self.stars_buff.as_slice());
+        self.stars.iter_mut()
+            .for_each(|star| star.calc_vec(&self.stars_buff));
+
+        if self.rank != self.next_rank {
+            // send passing stars
+            trace!("[r{}] sending {:?}", self.rank, self.stars_buff);
+            self.comm.process_at_rank(self.next_rank)
+                .send(self.stars_buff.as_slice());
+        }
 
         // rcv passing stars
-        let (rcv, msg) = self.comm
-            .process_at_rank(self.previous_rank)
-            .receive_vec();
-        trace!("got {:?} {:?}", rcv, msg);
+        let rcv = if self.rank != self.next_rank {
+            self.comm
+                .process_at_rank(self.previous_rank)
+                .receive_vec().0
+        } else {
+            self.stars.clone()
+        };
+        trace!("[r{}] got {:?}", self.rank, rcv);
 
-        self.stars.iter_mut()
-            .for_each(|star| star.calc_vec(&rcv));
-
-        // set buff
         self.stars_buff = rcv;
         Ok(())
     }
@@ -61,8 +68,16 @@ impl<'a> Proc<'a> {
             stars_buff: stars,
             next_rank,
             previous_rank,
+            rank,
             iteration: 0,
         }
+    }
+
+    pub fn complete_interation(&mut self) {
+        trace!("[r{}] update {:?}; {:?}", self.rank, self.stars.iter().map(Particle::get_mass).collect::<Vec<f32>>(),
+            self.stars.iter().map(Particle::get_new_vel).collect::<Vec<Vec3>>());
+        self.stars.iter_mut().for_each(|star| star.update());
+        self.stars_buff = self.stars.clone();
     }
 }
 

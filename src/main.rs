@@ -61,7 +61,7 @@ fn main() -> io::Result<()> {
                              size);
 
     world.barrier();
-    for it in 0..5 {
+    for it in 0..2 {
         for _ in 0..size {
             match proc.step() {
                 Ok(()) => {}
@@ -73,28 +73,31 @@ fn main() -> io::Result<()> {
             world.barrier();
         }
         world.barrier();
+        proc.complete_interation();
         info!("[i{}][r{}] State: {:?}", it, rank, proc.stars);
-        if save_result {
-            let chunk = proc.stars.iter().map(|star| star.to_string() + ",")
-                .collect::<String>()
-                .as_bytes()
-                .to_vec();
-            trace!("[{}] chunk: {:?}", rank, chunk);
-            if rank == 0 {
-                let mut line = vec![0u8; chunk.len() * (world.size() as usize + 1)];
-                world.process_at_rank(0)
-                    .gather_into_root(&chunk[..], &mut line[..]);
-                line = line.into_iter().filter(|ch| *ch != 0u8).collect();
-                trace!("[{}] gathered data", rank);
-                output.as_ref().unwrap()
-                    .write_all(
-                        format!("{}\n", std::str::from_utf8(line.as_slice()).unwrap()).as_bytes()
-                    ).unwrap();
-            } else {
-                world.process_at_rank(0).gather_into(&chunk[..])
-            }
+    }
+    world.barrier();
+    if save_result {
+        let chunk = proc.stars.iter().map(|star| star.to_string() + ",")
+            .collect::<String>()
+            .as_bytes()
+            .to_vec();
+        trace!("[{}] chunk: {:?}", rank, chunk);
+        if rank == 0 {
+            let mut line = vec![0u8; chunk.len() * (world.size() as usize + 1)];
+            world.process_at_rank(0)
+                .gather_into_root(&chunk[..], &mut line[..]);
+            line = line.into_iter().filter(|ch| *ch != 0u8).collect();
+            trace!("[{}] gathered data", rank);
+            output.as_ref().unwrap()
+                .write_all(
+                    format!("{}\n", std::str::from_utf8(line.as_slice()).unwrap()).as_bytes()
+                ).unwrap();
+        } else {
+            world.process_at_rank(0).gather_into(&chunk[..])
         }
     }
 
+    info!("DONE");
     Ok(())
 }

@@ -2,14 +2,14 @@ use std::fs::File;
 use std::{fmt, io, ops};
 use std::error::Error;
 use std::io::{BufRead, BufReader};
-use log::{debug, error, info, warn};
+use log::{debug, error, info, trace, warn};
 use mpi::traits::Equivalence;
 use crate::sim::err::StarErr;
 
 type Unit = f32;
 
-#[derive(Copy, Clone, Equivalence, Debug)]
-struct Vec3(Unit, Unit, Unit);
+#[derive(Copy, Clone, Equivalence, Debug, PartialEq)]
+pub struct Vec3(Unit, Unit, Unit);
 
 impl ops::Sub for Vec3 {
     type Output = Vec3;
@@ -48,15 +48,21 @@ impl Vec3 {
                 .map_err(|_| Particle::cannot_parse())?,
         })
     }
+
+    pub fn zeros() -> Self {
+        Vec3(0f32, 0f32, 0f32)
+    }
 }
 
 
-#[derive(Copy, Clone, Equivalence, Debug)]
+#[derive(Copy, Clone, Equivalence, PartialEq)]
 pub struct Particle {
     pos: Vec3,
     vel: Vec3,
 
-    mass: Unit, radius: Unit
+    mass: Unit, radius: Unit,
+
+    new_vel: Vec3
 }
 
 impl Particle {
@@ -68,24 +74,25 @@ impl Particle {
     }
 
     pub fn calc_vec(&mut self, other: &Vec<Self>) {
+        trace!("[s{}] ?? {:?}", self.mass, other);
         let mut acc = Vec3(0f32, 0f32, 0f32);
+        let mut new_vel = Vec3(0f32, 0f32, 0f32);
 
-        other.into_iter().for_each(|other| {
+
+        other.into_iter().filter(|other| **other != *self).for_each(|other| {
             let mut dpos = other.pos - self.pos;
             let r3 = self.dist3d(other).powf(3f32);
 
             acc.0 += Particle::G * other.mass * dpos.0 / r3;
             acc.1 += Particle::G * other.mass * dpos.1 / r3;
             acc.2 += Particle::G * other.mass * dpos.2 / r3;
+
+            trace!("[s{}] !! {}", self.mass, other.mass);
         });
 
-        self.pos.0 += self.vel.0 * Particle::DT;
-        self.pos.1 += self.vel.1 * Particle::DT;
-        self.pos.2 += self.vel.2 * Particle::DT;
-
-        self.vel.0 += acc.0 * Particle::DT;
-        self.vel.1 += acc.1 * Particle::DT;
-        self.vel.2 += acc.2 * Particle::DT;
+        self.new_vel.0 += acc.0 * Particle::DT;
+        self.new_vel.1 += acc.1 * Particle::DT;
+        self.new_vel.2 += acc.2 * Particle::DT;
     }
 
     pub fn new() -> Self{
@@ -94,6 +101,7 @@ impl Particle {
             vel: Vec3(1.01f32, 1f32, 1f32),
             mass: 5.0,
             radius: 1.0,
+            new_vel: Vec3(0f32, 0f32, 0f32)
         }
     }
 
@@ -115,6 +123,7 @@ impl Particle {
                 vel,
                 mass,
                 radius,
+                new_vel: Vec3(0f32, 0f32, 0f32)
             })
         } else {
             Err(err)
@@ -129,12 +138,44 @@ impl Particle {
         self.pos.dist3d(other.pos)
     }
 
+    pub fn update(&mut self) {
+        self.pos.0 += self.vel.0 * Particle::DT;
+        self.pos.1 += self.vel.1 * Particle::DT;
+        self.pos.2 += self.vel.2 * Particle::DT;
+
+        self.vel.0 += self.new_vel.0;
+        self.vel.1 += self.new_vel.1;
+        self.vel.2 += self.new_vel.2;
+
+        self.new_vel = Vec3::zeros();
+    }
+
+    pub fn get_mass(&self) -> Unit {
+        self.mass
+    }
+
+    pub fn get_new_vel(&self) -> Vec3 {
+        self.new_vel
+    }
+
     fn cannot_parse() -> io::Error {
         io::Error::new(io::ErrorKind::InvalidInput, "Cannot parse")
     }
 
     fn too_few_args() -> io::Error {
         io::Error::new(io::ErrorKind::InvalidInput, "Cannot parse input; Too few arguments")
+    }
+}
+
+
+impl fmt::Debug for Particle {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Star")
+            .field("x", &self.pos.0)
+            .field("y", &self.pos.1)
+            .field("z", &self.pos.2)
+            .field("mass", &self.mass)
+            .finish()
     }
 }
 

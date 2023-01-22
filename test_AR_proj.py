@@ -5,7 +5,7 @@ import subprocess
 def test_equal(_exec: str, _input: str, output: str):
     sums = []
     lengths = []
-    for i in [2, 4, 6]:
+    for i in [1, 2, 4, 6]:
         open(output, 'w').close()
         test = subprocess.call(["mpiexec", "-np", str(i), _exec, "-f", _input, "-s"])
         with open(output, mode='r') as file:
@@ -14,6 +14,8 @@ def test_equal(_exec: str, _input: str, output: str):
             sums.append(sum(content))
     print(sums)
     print(lengths)
+    assert sums.count(sums[0]) == len(sums)
+    assert lengths.count(lengths[0]) == len(lengths)
 
 
 if __name__ == '__main__':
